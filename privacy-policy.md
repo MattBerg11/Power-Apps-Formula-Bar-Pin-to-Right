@@ -1,6 +1,6 @@
 # Privacy Policy for Canvas App Formula Move Extension
 
-**Last Updated:** [Current Date]
+**Last Updated:** 8th June 2025
 
 ## Overview
 Canvas App Formula Move is a browser extension that enhances the Power Apps Studio experience by allowing users to pin and resize the formula bar. We are committed to protecting your privacy.
@@ -60,7 +60,8 @@ We may update this privacy policy occasionally. Updates will be posted with the 
 For questions about this privacy policy or the extension:
 - **Extension Name:** Canvas App Formula Move
 - **Version:** 1.0.0
-- **Contact:** [Your email or GitHub profile]
+- **Contact:** [Power Nerd Insights](https://github.com/Power-Nerd-Insights)
+- **Issues:** https://github.com/Power-Nerd-Insights/Power-Apps-Formula-Bar-Pin-to-Right
 
 ## Microsoft Store Compliance
 This extension complies with Microsoft Edge Add-ons store policies regarding user privacy and data handling.
