@@ -15,6 +15,7 @@
     let isPinned = false;
     let propertiesContainer = null;
     let resizeHandle = null;
+    let originalWidgetStyles = new Map();
 
     // Polling function to find elements
     function pollForElement(selector, callback, maxAttempts = 30) {
@@ -320,9 +321,11 @@
             formulaBarEditor.style.setProperty('max-width', adjustedWidth + 'px', 'important');
             formulaBarEditor.style.setProperty('min-width', adjustedWidth + 'px', 'important');
             
-            // Ensure overflow is visible for intellisense dropdown
-            formulaBarEditor.style.setProperty('overflow', 'visible', 'important');
-            formulaBarEditor.style.setProperty('position', 'relative', 'important');
+            // Only set overflow when pinned - when not pinned, let Monaco handle it naturally
+            if (isPinned) {
+                formulaBarEditor.style.setProperty('overflow', 'visible', 'important');
+                formulaBarEditor.style.setProperty('position', 'relative', 'important');
+            }
             
             console.log("[Extension] Set formulaBarEditor width to " + adjustedWidth + "px");
         }
@@ -334,9 +337,11 @@
             formulaBarById.style.setProperty('max-width', adjustedWidth + 'px', 'important');
             formulaBarById.style.setProperty('min-width', adjustedWidth + 'px', 'important');
             
-            // Ensure overflow is visible for intellisense dropdown
-            formulaBarById.style.setProperty('overflow', 'visible', 'important');
-            formulaBarById.style.setProperty('position', 'relative', 'important');
+            // Only set overflow when pinned - when not pinned, let Monaco handle it naturally
+            if (isPinned) {
+                formulaBarById.style.setProperty('overflow', 'visible', 'important');
+                formulaBarById.style.setProperty('position', 'relative', 'important');
+            }
             
             console.log("[Extension] Set formulabar by ID width to " + adjustedWidth + "px");
         }
@@ -350,21 +355,24 @@
             focusZone.style.boxSizing = 'border-box';
         }
 
-        // Fix container overflow to prevent horizontal scrolling
-        containerDiv.style.setProperty('overflow-x', 'hidden', 'important');
-        containerDiv.style.setProperty('overflow-y', 'auto', 'important');
-        
-        // Look for Monaco editor container and fix its overflow
-        const monacoContainer = containerDiv.querySelector('.monaco-editor');
-        if (monacoContainer) {
-            monacoContainer.style.setProperty('overflow-x', 'hidden', 'important');
-            monacoContainer.style.setProperty('overflow-y', 'visible', 'important');
+        // Only restrict container overflow when pinned
+        if (isPinned) {
+            // Fix container overflow to prevent horizontal scrolling
+            containerDiv.style.setProperty('overflow-x', 'hidden', 'important');
+            containerDiv.style.setProperty('overflow-y', 'auto', 'important');
             
-            // Find the monaco editor viewport
-            const monacoViewport = monacoContainer.querySelector('.view-lines');
-            if (monacoViewport) {
-                monacoViewport.style.setProperty('overflow-x', 'hidden', 'important');
-                monacoViewport.style.setProperty('overflow-y', 'visible', 'important');
+            // Look for Monaco editor container and fix its overflow
+            const monacoContainer = containerDiv.querySelector('.monaco-editor');
+            if (monacoContainer) {
+                monacoContainer.style.setProperty('overflow-x', 'hidden', 'important');
+                monacoContainer.style.setProperty('overflow-y', 'visible', 'important');
+                
+                // Find the monaco editor viewport
+                const monacoViewport = monacoContainer.querySelector('.view-lines');
+                if (monacoViewport) {
+                    monacoViewport.style.setProperty('overflow-x', 'hidden', 'important');
+                    monacoViewport.style.setProperty('overflow-y', 'visible', 'important');
+                }
             }
         }
 
@@ -376,7 +384,8 @@
                 input.style.maxWidth = 'calc(100% - 2px)';
                 input.style.boxSizing = 'border-box';
                 
-                if (input.tagName.toLowerCase() === 'textarea' || input.tagName.toLowerCase() === 'input') {
+                // Only restrict input overflow when pinned
+                if (isPinned && (input.tagName.toLowerCase() === 'textarea' || input.tagName.toLowerCase() === 'input')) {
                     input.style.setProperty('overflow-x', 'hidden', 'important');
                     input.style.setProperty('overflow-y', 'auto', 'important');
                 }
@@ -566,145 +575,285 @@
     function pinFormulaBar(containerDiv) {
         console.log("[Extension] Starting pin operation...");
         
-        // Find and store properties container
-        const propertiesInfo = getPropertiesContainerInfo();
-        if (!propertiesInfo) {
-            console.log("[Extension] Could not find properties container - aborting pin");
-            return;
-        }
-        
-        propertiesContainer = propertiesInfo.element;
-        
-        // Store original positions
-        originalParent = containerDiv.parentNode;
-        originalNextSibling = containerDiv.nextSibling;
-        storeOriginalStyles(containerDiv);
-        storeOriginalPropertiesStyles(propertiesContainer);
-
-        // Get the properties container width for positioning
-        const propertiesWidth = propertiesInfo.width;
-        const propertiesHeight = propertiesInfo.height;
-        
-        console.log("[Extension] Moving properties container left by " + propertiesWidth + "px");
-        
-        // Move properties container to the left with smooth transition
-        propertiesContainer.style.transition = "transform 0.3s ease-in-out";
-        propertiesContainer.style.transform = "translateX(-" + propertiesWidth + "px)";
-        propertiesContainer.style.zIndex = "999"; // Keep behind formula bar
-
-        // Position formula bar in the space where properties used to be
-        containerDiv.style.transition = "all 0.3s ease-in-out";
-        containerDiv.style.position = "fixed";
-        containerDiv.style.top = propertiesInfo.top + "px";
-        containerDiv.style.right = "0px";
-        containerDiv.style.left = "auto";
-        containerDiv.style.setProperty('width', propertiesWidth + 'px', 'important');
-        containerDiv.style.setProperty('height', propertiesHeight + 'px', 'important');
-        containerDiv.style.setProperty('display', 'block', 'important');
-        containerDiv.style.setProperty('overflow', 'visible', 'important');
-        containerDiv.style.zIndex = "1000"; // Above properties panel
-        containerDiv.style.backgroundColor = "#ffffff";
-        containerDiv.style.border = "1px solid #e1e1e1";
-        containerDiv.style.boxShadow = "-2px 0 8px rgba(0, 0, 0, 0.1)";
-        containerDiv.style.borderRadius = "0";
-        containerDiv.style.padding = "16px";
-        containerDiv.style.paddingLeft = "21px";
-        containerDiv.style.margin = "0";
-        containerDiv.style.resize = "none";
-
-        // Move to body to ensure proper positioning
-        document.body.appendChild(containerDiv);
-
-        // Create resize handle
-        createResizeHandle(containerDiv);
-
-        // Update formula bar sizing and start observing changes
-        updateFormulaBarSize(containerDiv);
-        observeFocusZoneChanges(containerDiv);
-
-        // Set up mutation observer to catch intellisense dropdowns
-        setupIntellisenseObserver();
-        
-        // Set up observer to monitor properties panel changes
-        setupPropertiesObserver();
-
-        isPinned = true;
-
-        // Set up a one-time check to ensure positioning is correct after everything settles
-        setTimeout(() => {
-            if (isPinned && propertiesContainer) {
-                repositionPropertiesPanel();
+        // Only check for properties container when pinning, not when unpinning
+        if (!isPinned) {
+            // Find and store properties container
+            const propertiesInfo = getPropertiesContainerInfo();
+            if (!propertiesInfo) {
+                console.log("[Extension] Could not find properties container - aborting pin");
+                return;
             }
-        }, 1000);
+            
+            propertiesContainer = propertiesInfo.element;
+            
+            // Store original positions
+            originalParent = containerDiv.parentNode;
+            originalNextSibling = containerDiv.nextSibling;
+            storeOriginalStyles(containerDiv);
+            storeOriginalPropertiesStyles(propertiesContainer);
 
-        console.log("[Extension] Formula bar pinned successfully");
+            // Get the properties container width for positioning
+            const propertiesWidth = propertiesInfo.width;
+            const propertiesHeight = propertiesInfo.height;
+            
+            console.log("[Extension] Moving properties container left by " + propertiesWidth + "px");
+            
+            // Move properties container to the left with smooth transition
+            propertiesContainer.style.transition = "transform 0.3s ease-in-out";
+            propertiesContainer.style.transform = "translateX(-" + propertiesWidth + "px)";
+            propertiesContainer.style.zIndex = "999"; // Keep behind formula bar
+
+            // Position formula bar in the space where properties used to be
+            containerDiv.style.transition = "all 0.3s ease-in-out";
+            containerDiv.style.position = "fixed";
+            containerDiv.style.top = propertiesInfo.top + "px";
+            containerDiv.style.right = "0px";
+            containerDiv.style.left = "auto";
+            containerDiv.style.setProperty('width', propertiesWidth + 'px', 'important');
+            containerDiv.style.setProperty('height', propertiesHeight + 'px', 'important');
+            containerDiv.style.setProperty('display', 'block', 'important');
+            containerDiv.style.setProperty('overflow', 'visible', 'important');
+            containerDiv.style.zIndex = "1000"; // Above properties panel
+            containerDiv.style.backgroundColor = "#ffffff";
+            containerDiv.style.border = "1px solid #e1e1e1";
+            containerDiv.style.boxShadow = "-2px 0 8px rgba(0, 0, 0, 0.1)";
+            containerDiv.style.borderRadius = "0";
+            containerDiv.style.padding = "16px";
+            containerDiv.style.paddingLeft = "21px";
+            containerDiv.style.margin = "0";
+            containerDiv.style.resize = "none";
+
+            // Move to body to ensure proper positioning
+            document.body.appendChild(containerDiv);
+
+            // Create resize handle
+            createResizeHandle(containerDiv);
+
+            // Update formula bar sizing and start observing changes
+            updateFormulaBarSize(containerDiv);
+            observeFocusZoneChanges(containerDiv);
+
+            // Set up simple IntelliSense observer - ONLY when pinned
+            setupIntellisenseObserver();
+            
+            // Set up observer to monitor properties panel changes
+            setupPropertiesObserver();
+
+            isPinned = true;
+
+            // Set up a one-time check to ensure positioning is correct after everything settles
+            setTimeout(() => {
+                if (isPinned && propertiesContainer) {
+                    repositionPropertiesPanel();
+                }
+            }, 1000);
+
+            console.log("[Extension] Formula bar pinned successfully");
+        } else {
+            // If already pinned, this is an unpin operation
+            console.log("[Extension] Formula bar is already pinned, performing unpin operation");
+            resetFormulaBar(containerDiv);
+        }
     }
 
-    // Set up observer for intellisense/suggest widgets
+    // Simple IntelliSense positioning - only when pinned
+    function fixIntellisenseWidget(widget) {
+        if (!isPinned || !widget || !widget.style) {
+            return; // Do nothing if not pinned
+        }
+
+        // Find the view-line div (where user is typing)
+        const viewLine = document.querySelector('.view-line');
+        if (!viewLine) return;
+
+        const viewLineRect = viewLine.getBoundingClientRect();
+        
+        // Position dropdown just below the typing line, within screen bounds
+        const leftPosition = Math.max(10, viewLineRect.left);
+        const topPosition = viewLineRect.bottom + 2;
+        const maxWidth = Math.min(400, window.innerWidth - leftPosition - 20);
+        
+        // Apply simple fixed positioning
+        widget.style.setProperty('position', 'fixed', 'important');
+        widget.style.setProperty('left', leftPosition + 'px', 'important');
+        widget.style.setProperty('top', topPosition + 'px', 'important');
+        widget.style.setProperty('z-index', '1000000', 'important');
+        widget.style.setProperty('max-width', maxWidth + 'px', 'important');
+        widget.style.setProperty('min-width', '250px', 'important');
+        widget.style.setProperty('min-height', '40px', 'important');
+        
+        console.log("[Extension] Fixed IntelliSense positioning for pinned mode");
+    }
+
+    // Complete reset - remove all custom styling
+    function resetAllIntellisenseWidgets() {
+        console.log("[Extension] Resetting all IntelliSense widgets");
+        
+        // Find all IntelliSense widgets and remove our custom styles
+        const allSuggestWidgets = document.querySelectorAll('.suggest-widget, [widgetid="editor.widget.suggestWidget"]');
+        allSuggestWidgets.forEach(widget => {
+            // Remove all positioning styles we may have added
+            ['position', 'left', 'top', 'z-index', 'max-width', 'min-width', 'min-height'].forEach(prop => {
+                widget.style.removeProperty(prop);
+            });
+        });
+        
+        // Clear our tracking
+        originalWidgetStyles.clear();
+        
+        // Force Monaco to recalculate
+        if (window.monaco && window.monaco.editor) {
+            const editors = window.monaco.editor.getEditors();
+            editors.forEach(editor => {
+                try {
+                    editor.layout();
+                } catch (e) {
+                    console.log("[Extension] Error resetting Monaco editor:", e);
+                }
+            });
+        }
+    }
+
+    // Simple observer - only fix when pinned
     function setupIntellisenseObserver() {
         const observer = new MutationObserver((mutations) => {
+            if (!isPinned) return; // Only act when pinned
+            
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === Node.ELEMENT_NODE) {
-                        if (node.classList && (
-                            node.classList.contains('suggest-widget') ||
-                            node.classList.contains('monaco-list') ||
-                            node.classList.contains('parameter-hints-widget') ||
-                            node.querySelector && node.querySelector('.suggest-widget, .monaco-list, .parameter-hints-widget')
-                        )) {
-                            console.log("[Extension] Found intellisense widget, fixing positioning");
-                            
-                            if (node.classList.contains('suggest-widget') || node.classList.contains('monaco-list') || node.classList.contains('parameter-hints-widget')) {
-                                fixIntellisenseWidget(node);
-                            } else {
-                                const widgets = node.querySelectorAll('.suggest-widget, .monaco-list, .parameter-hints-widget');
-                                widgets.forEach(fixIntellisenseWidget);
-                            }
+                        // Check for IntelliSense widgets
+                        if (node.classList && node.classList.contains('suggest-widget')) {
+                            setTimeout(() => fixIntellisenseWidget(node), 10);
+                        }
+                        
+                        // Check for nested widgets
+                        const suggestWidgets = node.querySelectorAll && node.querySelectorAll('.suggest-widget');
+                        if (suggestWidgets && suggestWidgets.length > 0) {
+                            setTimeout(() => {
+                                suggestWidgets.forEach(fixIntellisenseWidget);
+                            }, 10);
                         }
                     }
                 });
+                
+                // Monitor style changes for visibility
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    const node = mutation.target;
+                    if (node.classList && node.classList.contains('suggest-widget')) {
+                        const computedStyle = window.getComputedStyle(node);
+                        if (computedStyle.display !== 'none' && computedStyle.visibility !== 'hidden') {
+                            setTimeout(() => fixIntellisenseWidget(node), 10);
+                        }
+                    }
+                }
             });
         });
 
         observer.observe(document.body, {
             childList: true,
-            subtree: true
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style']
         });
 
         window._intellisenseObserver = observer;
     }
 
-    // Fix intellisense widget positioning and visibility
-    function fixIntellisenseWidget(widget) {
-        if (!widget || !widget.style) {
-            console.log("[Extension] fixIntellisenseWidget: widget is null or has no style property");
-            return;
-        }
-
-        widget.style.setProperty('z-index', '10002', 'important');
-        widget.style.setProperty('position', 'fixed', 'important');
-        widget.style.setProperty('max-height', '300px', 'important');
-        widget.style.setProperty('overflow', 'auto', 'important');
-        widget.style.setProperty('background', 'white', 'important');
-        widget.style.setProperty('border', '1px solid #ccc', 'important');
-        widget.style.setProperty('box-shadow', '0 2px 8px rgba(0,0,0,0.15)', 'important');
+    // Update the pinFormulaBar function to add IntelliSense handling
+    function pinFormulaBar(containerDiv) {
+        console.log("[Extension] Starting pin operation...");
         
-        const textElements = widget.querySelectorAll('.monaco-list-row, .suggest-item, .label-name, .label-text');
-        textElements.forEach(el => {
-            if (el && el.style) {
-                el.style.setProperty('color', '#000', 'important');
-                el.style.setProperty('background', 'transparent', 'important');
+        if (!isPinned) {
+            // Find and store properties container
+            const propertiesInfo = getPropertiesContainerInfo();
+            if (!propertiesInfo) {
+                console.log("[Extension] Could not find properties container - aborting pin");
+                return;
             }
-        });
-        
-        console.log("[Extension] Applied intellisense widget fixes");
+            
+            propertiesContainer = propertiesInfo.element;
+            
+            // Store original positions
+            originalParent = containerDiv.parentNode;
+            originalNextSibling = containerDiv.nextSibling;
+            storeOriginalStyles(containerDiv);
+            storeOriginalPropertiesStyles(propertiesContainer);
+
+            // Get the properties container width for positioning
+            const propertiesWidth = propertiesInfo.width;
+            const propertiesHeight = propertiesInfo.height;
+            
+            console.log("[Extension] Moving properties container left by " + propertiesWidth + "px");
+            
+            // Move properties container to the left with smooth transition
+            propertiesContainer.style.transition = "transform 0.3s ease-in-out";
+            propertiesContainer.style.transform = "translateX(-" + propertiesWidth + "px)";
+            propertiesContainer.style.zIndex = "999"; // Keep behind formula bar
+
+            // Position formula bar in the space where properties used to be
+            containerDiv.style.transition = "all 0.3s ease-in-out";
+            containerDiv.style.position = "fixed";
+            containerDiv.style.top = propertiesInfo.top + "px";
+            containerDiv.style.right = "0px";
+            containerDiv.style.left = "auto";
+            containerDiv.style.setProperty('width', propertiesWidth + 'px', 'important');
+            containerDiv.style.setProperty('height', propertiesHeight + 'px', 'important');
+            containerDiv.style.setProperty('display', 'block', 'important');
+            containerDiv.style.setProperty('overflow', 'visible', 'important');
+            containerDiv.style.zIndex = "1000"; // Above properties panel
+            containerDiv.style.backgroundColor = "#ffffff";
+            containerDiv.style.border = "1px solid #e1e1e1";
+            containerDiv.style.boxShadow = "-2px 0 8px rgba(0, 0, 0, 0.1)";
+            containerDiv.style.borderRadius = "0";
+            containerDiv.style.padding = "16px";
+            containerDiv.style.paddingLeft = "21px";
+            containerDiv.style.margin = "0";
+            containerDiv.style.resize = "none";
+
+            // Move to body to ensure proper positioning
+            document.body.appendChild(containerDiv);
+
+            // Create resize handle
+            createResizeHandle(containerDiv);
+
+            // Update formula bar sizing and start observing changes
+            updateFormulaBarSize(containerDiv);
+            observeFocusZoneChanges(containerDiv);
+
+            // Set up simple IntelliSense observer - ONLY when pinned
+            setupIntellisenseObserver();
+            
+            // Set up observer to monitor properties panel changes
+            setupPropertiesObserver();
+
+            isPinned = true;
+
+            // Set up a one-time check to ensure positioning is correct after everything settles
+            setTimeout(() => {
+                if (isPinned && propertiesContainer) {
+                    repositionPropertiesPanel();
+                }
+            }, 1000);
+
+            console.log("[Extension] Formula bar pinned successfully");
+        } else {
+            // If already pinned, this is an unpin operation
+            console.log("[Extension] Formula bar is already pinned, performing unpin operation");
+            resetFormulaBar(containerDiv);
+        }
     }
 
-    // Reset formula bar to original position
+    // Simplified reset function
     function resetFormulaBar(containerDiv) {
         console.log("[Extension] Starting reset operation...");
 
-        // Clean up observers and intervals
+        // Clean up observers immediately
+        if (window._intellisenseObserver) {
+            window._intellisenseObserver.disconnect();
+            delete window._intellisenseObserver;
+        }
+
         if (window._propertiesObserver) {
             window._propertiesObserver.disconnect();
             delete window._propertiesObserver;
@@ -713,11 +862,6 @@
         if (window._propertiesInterval) {
             clearInterval(window._propertiesInterval);
             delete window._propertiesInterval;
-        }
-
-        if (window._intellisenseObserver) {
-            window._intellisenseObserver.disconnect();
-            delete window._intellisenseObserver;
         }
 
         if (containerDiv._focusZoneObserver) {
@@ -755,6 +899,12 @@
             }, 300);
         }
 
+        // Set isPinned to false BEFORE resetting IntelliSense
+        isPinned = false;
+        
+        // Reset IntelliSense widgets - this will now do nothing since isPinned = false
+        resetAllIntellisenseWidgets();
+
         // Reset formula bar styles
         containerDiv.style.transition = "all 0.3s ease-in-out";
         
@@ -770,7 +920,7 @@
                 }
             });
 
-            // Reset all modified elements
+            // Reset all modified elements and RESTORE proper overflow for IntelliSense
             const elementsToReset = [
                 '.focusZone-298',
                 '.formulaBarContainer_w14rc', 
@@ -781,11 +931,44 @@
             elementsToReset.forEach(selector => {
                 const element = containerDiv.querySelector(selector);
                 if (element) {
-                    ['width', 'height', 'max-width', 'min-width', 'overflow', 'position', 'display', 'box-sizing'].forEach(prop => {
+                    // Remove pinned-specific styles
+                    ['width', 'height', 'max-width', 'min-width', 'position', 'display', 'box-sizing'].forEach(prop => {
                         element.style.removeProperty(prop);
                     });
+                    
+                    // CRITICAL: Restore proper overflow for IntelliSense
+                    if (selector.includes('formulaBarEditor') || selector.includes('#formulabar')) {
+                        console.log("[Extension] Restoring overflow settings for IntelliSense on:", selector);
+                        element.style.removeProperty('overflow');
+                        element.style.removeProperty('overflow-x');
+                        element.style.removeProperty('overflow-y');
+                        // Let Monaco handle overflow naturally - don't force any values
+                    }
                 }
             });
+
+            // CRITICAL: Reset container overflow settings to allow IntelliSense to overflow
+            console.log("[Extension] Resetting container overflow for IntelliSense");
+            containerDiv.style.removeProperty('overflow');
+            containerDiv.style.removeProperty('overflow-x');
+            containerDiv.style.removeProperty('overflow-y');
+
+            // Reset Monaco editor container overflow
+            const monacoContainer = containerDiv.querySelector('.monaco-editor');
+            if (monacoContainer) {
+                console.log("[Extension] Resetting Monaco editor overflow");
+                monacoContainer.style.removeProperty('overflow');
+                monacoContainer.style.removeProperty('overflow-x');
+                monacoContainer.style.removeProperty('overflow-y');
+                
+                // Reset monaco editor viewport overflow
+                const monacoViewport = monacoContainer.querySelector('.view-lines');
+                if (monacoViewport) {
+                    monacoViewport.style.removeProperty('overflow');
+                    monacoViewport.style.removeProperty('overflow-x');
+                    monacoViewport.style.removeProperty('overflow-y');
+                }
+            }
 
             // Move back to original parent
             if (originalParent) {
@@ -796,8 +979,66 @@
                 }
             }
 
-            isPinned = false;
             propertiesContainer = null;
+
+            // Final Monaco Editor reset with proper timing
+            setTimeout(() => {
+                if (window.monaco && window.monaco.editor) {
+                    const editors = window.monaco.editor.getEditors();
+                    editors.forEach(editor => {
+                        try {
+                            console.log("[Extension] Final Monaco editor layout and IntelliSense reset");
+                            editor.layout();
+                            
+                            // Force suggest widget to reinitialize properly
+                            const suggestController = editor.getContribution('editor.contrib.suggestController');
+                            if (suggestController && suggestController.widget && suggestController.widget.value) {
+                                // Hide and then allow it to show naturally
+                                suggestController.widget.value.hideWidget();
+                                setTimeout(() => {
+                                    if (suggestController.widget && suggestController.widget.value) {
+                                        suggestController.widget.value.layout();
+                                    }
+                                }, 50);
+                            }
+                        } catch (e) {
+                            console.log("[Extension] Error in final Monaco layout:", e);
+                        }
+                    });
+                }
+                
+                // Final verification that overflow is properly reset
+                setTimeout(() => {
+                    console.log("[Extension] Final overflow verification");
+                    
+                    // Ensure no lingering overflow restrictions
+                    const finalMonacoContainer = document.querySelector('#formulaBarContainer .monaco-editor');
+                    if (finalMonacoContainer) {
+                        // Remove any overflow restrictions that might be blocking IntelliSense
+                        finalMonacoContainer.style.removeProperty('overflow');
+                        finalMonacoContainer.style.removeProperty('overflow-x');
+                        finalMonacoContainer.style.removeProperty('overflow-y');
+                        
+                        const viewLines = finalMonacoContainer.querySelector('.view-lines');
+                        if (viewLines) {
+                            viewLines.style.removeProperty('overflow');
+                            viewLines.style.removeProperty('overflow-x');
+                            viewLines.style.removeProperty('overflow-y');
+                        }
+                    }
+                    
+                    // Ensure the formula bar container itself doesn't restrict overflow
+                    const finalFormulaBarContainer = document.querySelector('#formulaBarContainer');
+                    if (finalFormulaBarContainer) {
+                        finalFormulaBarContainer.style.removeProperty('overflow');
+                        finalFormulaBarContainer.style.removeProperty('overflow-x');
+                        finalFormulaBarContainer.style.removeProperty('overflow-y');
+                    }
+                    
+                    console.log("[Extension] Overflow verification completed");
+                }, 100);
+                
+            }, 100);
 
             console.log("[Extension] Reset operation completed");
         }, 100);
@@ -905,6 +1146,7 @@
                     pinButton.setAttribute('aria-label', 'Reset formula bar position');
                 } else {
                     console.log("[Extension] Reset Position button clicked.");
+                    // Call resetFormulaBar directly instead of pinFormulaBar
                     resetFormulaBar(containerDiv);
                     // Update button appearance for unpinned state
                     pinButton.innerHTML = pinIconSvg;
