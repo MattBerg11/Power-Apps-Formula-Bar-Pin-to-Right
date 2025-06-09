@@ -1,4 +1,4 @@
-# Power Apps Formula Bar Pin to Right
+# PowerPin Formula Bar
 
 A Microsoft Edge extension that enhances the Power Apps Studio experience by allowing users to pin and resize the formula bar to the right side of the screen.
 
