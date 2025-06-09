@@ -16,11 +16,12 @@ A Microsoft Edge extension that enhances the Power Apps Studio experience by all
 
 ### Manual Installation (Developer Mode)
 1. Download or clone this repository
-2. Open Microsoft Edge
-3. Navigate to `edge://extensions/`
-4. Enable "Developer mode"
-5. Click "Load unpacked"
-6. Select the extension folder
+2. Unpack the download
+3. Open Microsoft Edge
+4. Navigate to `edge://extensions/`
+5. Enable "Developer mode"
+6. Click "Load unpacked"
+7. Select the extension folder
 
 ## 🎯 How to Use
 
