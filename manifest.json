@@ -1,14 +1,24 @@
 {
   "manifest_version": 3,
-  "name": "Canvas App Formula Move",
-  "version": "1.0.0",
+  "name": "PowerPin Formula Bar",
+  "version": "1.1.0",
   "description": "Pin and resize the Power Apps formula bar to the right side for better productivity",
   "permissions": [
     "activeTab"
   ],
   "host_permissions": [
     "https://make.powerapps.com/*",
-    "https://*.powerapps.com/*"
+    "https://*.powerapps.com/*",
+    "https://make.gov.powerapps.us/*",
+    "https://*.gov.powerapps.us/*",
+    "https://make.high.powerapps.us/*",
+    "https://*.high.powerapps.us/*",
+    "https://make.mil.powerapps.us/*",
+    "https://*.mil.powerapps.us/*",
+    "https://make.powerapps.microsoft.scloud/*",
+    "https://*.powerapps.microsoft.scloud/*",
+    "https://make.powerapps.appsplatform.us/*",
+    "https://*.powerapps.appsplatform.us/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -17,7 +27,12 @@
   "content_scripts": [
     {
       "matches": [
-        "https://*.powerapps.com/*"
+        "https://*.powerapps.com/*",
+        "https://*.gov.powerapps.us/*",
+        "https://*.high.powerapps.us/*",
+        "https://*.mil.powerapps.us/*",
+        "https://*.powerapps.microsoft.scloud/*",
+        "https://*.powerapps.appsplatform.us/*"
       ],
       "js": ["iframe-content.js"],
       "run_at": "document_end",
