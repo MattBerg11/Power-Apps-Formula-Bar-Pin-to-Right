@@ -9,12 +9,7 @@
   "host_permissions": [
     "https://make.powerapps.com/*",
     "https://*.powerapps.com/*",
-    "https://make.gov.powerapps.us/*",
-    "https://*.gov.powerapps.us/*",
-    "https://make.high.powerapps.us/*",
-    "https://*.high.powerapps.us/*",
-    "https://make.mil.powerapps.us/*",
-    "https://*.mil.powerapps.us/*",
+    "https://*.powerapps.us/*",
     "https://make.powerapps.microsoft.scloud/*",
     "https://*.powerapps.microsoft.scloud/*",
     "https://make.powerapps.appsplatform.us/*",
@@ -28,9 +23,7 @@
     {
       "matches": [
         "https://*.powerapps.com/*",
-        "https://*.gov.powerapps.us/*",
-        "https://*.high.powerapps.us/*",
-        "https://*.mil.powerapps.us/*",
+        "https://*.powerapps.us/*",
         "https://*.powerapps.microsoft.scloud/*",
         "https://*.powerapps.appsplatform.us/*"
       ],
