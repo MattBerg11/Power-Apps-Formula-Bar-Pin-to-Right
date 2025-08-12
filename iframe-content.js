@@ -3,9 +3,7 @@
 
     // Only run if we're in the PowerApps iframe
     if (!window.location.href.includes('powerapps.com') && 
-        !window.location.href.includes('gov.powerapps.us') && 
-        !window.location.href.includes('high.powerapps.us') && 
-        !window.location.href.includes('mil.powerapps.us') && 
+        !window.location.href.includes('powerapps.us') &&
         !window.location.href.includes('powerapps.microsoft.scloud') && 
         !window.location.href.includes('powerapps.appsplatform.us') || 
         window.self === window.top) {
